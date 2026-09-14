@@ -1,0 +1,80 @@
+name: ios-simulator-testing
+description: Build, boot, test and QA iOS apps on the Simulator via xcodegen/xcodebuild/simctl
+
+instructions: |
+  The iOS analogue of macos-app-testing's rule: a green `xcodebuild test` exit
+  code is not proof the app works, and a red one is not proof the app is
+  broken. Both need a second look before you trust them.
+
+  - **Stale DerivedData produces a phantom empty test bundle.** If a target's
+    Sources build phase silently has zero files — most often because
+    `project.yml` was edited (a test file added) but `xcodegen generate` was
+    not re-run — the resulting `.xctest` bundle builds "successfully" but is
+    empty, and `xcodebuild test` fails at *load* time with "couldn't be loaded
+    because its executable couldn't be located." That message looks like a
+    build-system bug. It almost always means the project is stale. `test`
+    clears DerivedData for the target before every run and, if it sees that
+    exact failure signature anyway, tells you to re-run `generate_project`
+    rather than just handing back the raw error.
+  - **`xcodebuild` output is enormous and almost entirely noise.** `build` and
+    `test` parse it into a structured summary — errors, warnings, and (for
+    `test`) per-test-case pass/fail — instead of dumping the raw log. The full
+    log is not thrown away; the tools report where it was captured so you can
+    grep it if the summary is not enough.
+  - **Booting a simulator is not instantaneous**, and a fixed `sleep` after
+    `simctl boot` either races the boot or wastes time on every call.
+    `boot_simulator` polls `simctl bootstatus`, which blocks until the
+    simulator is actually ready to install and run something. Booting an
+    already-booted simulator is a no-op success, not an error — callers should
+    not have to check state first.
+  - **A test failure message alone is often a false trail.** "Element not
+    found" can mean the element genuinely never appeared, or it can mean the
+    test asked too early, or the screen legitimately shows something else. The
+    xcresult bundle records a screen recording and screenshots for exactly
+    this reason. `extract_failure_evidence` pulls both out and returns image
+    paths so a calling agent can `Read()` them and actually look at the
+    screen, which usually settles the question in one glance.
+  - **Naive video seeking silently produces empty frames** on these short
+    xcresult recordings — `ffmpeg -sseof` is not reliable here. Get the frame
+    count with `ffprobe` first, then select an exact frame index with
+    `-vf "select='eq(n\,N)'" -update 1 -frames:v 1`. `extract_failure_evidence`
+    does this for you; do not reach for `-ss`/`-sseof` if you are ever doing
+    this by hand.
+
+tools:
+  entry: tools.ts
+
+tool-metadata:
+  - { toolName: status, namespace: ios-simulator-testing, access: read }
+  - { toolName: list_simulators, namespace: ios-simulator-testing, access: read }
+  - { toolName: screenshot, namespace: ios-simulator-testing, access: read }
+  - { toolName: extract_failure_evidence, namespace: ios-simulator-testing, access: read }
+  - { toolName: generate_project, namespace: ios-simulator-testing, access: write }
+  - { toolName: boot_simulator, namespace: ios-simulator-testing, access: write }
+  - { toolName: build, namespace: ios-simulator-testing, access: write }
+  - { toolName: test, namespace: ios-simulator-testing, access: write }
+
+dependencies:
+  - name: xcodegen
+    reason: regenerates the .xcodeproj from project.yml before build/test
+
+# Two traits, mirroring macos-app-testing's read/readwrite split. Inspection
+# (list/status/screenshot/evidence) is safe to grant on its own — it reads
+# state and exports files, but never boots a simulator, runs a build, or
+# executes arbitrary project code. build/test/boot mutate simulator state and
+# run whatever the target project's build phases and test code do, so they get
+# their own, more privileged trait.
+#
+# Neither trait reuses the bag's auto-trait name (`ios-simulator-testing`) —
+# doing so would REPLACE the auto-trait instead of refining it, per
+# getAllTraits ("the manifest wins"), silently discarding what it would
+# otherwise carry. See macos-app-testing/bag.yaml for the same note.
+traits:
+  ios-simulator-testing-readwrite:
+    description: Generate, build, boot and test iOS apps on the Simulator
+    access: readwrite
+    namespaces: [ios-simulator-testing]
+  ios-simulator-inspection:
+    description: Inspect simulators and QA evidence without building, booting, or running anything
+    access: read
+    namespaces: [ios-simulator-testing]
