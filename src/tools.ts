@@ -411,7 +411,16 @@ export const extractFailureEvidence = defineTool({
     "(\"element not found\") is often a false trail; the rendered screen usually shows the real state.",
   schema: {
     xcresult_path: z.string().describe("Path to the .xcresult bundle"),
-    test_identifier: z.string().describe("Test identifier, e.g. \"MyUITests/MyUITests/testFoo\""),
+    test_identifier: z
+      .string()
+      .describe(
+        "Test identifier as the bundle reports it: <TestTarget>/<testMethod>(), e.g. " +
+          "\"BarryUITests/testLaunchesAndShowsSessions()\". NOT " +
+          "<TestTarget>/<TestTarget>/<testMethod> — the target is not repeated, and the " +
+          "parentheses are part of it. If extraction reports \"Failed to find test with " +
+          "the provided identifier\", get the exact string from " +
+          "`xcrun xcresulttool get test-results tests --path <bundle>`.",
+      ),
   },
   handler: async ({ xcresult_path, test_identifier }) => {
     try {
