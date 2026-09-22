@@ -1,4 +1,4 @@
-import { defineTool } from "@barry-rocks/tools";
+import { defineTool } from "@barry-rocks/sdk-bags";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
