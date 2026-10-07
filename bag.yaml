@@ -1,5 +1,6 @@
 name: ios-simulator-testing
-description: Build, boot, test and QA iOS apps on the Simulator via xcodegen/xcodebuild/simctl
+description: Build, boot, test and QA iOS apps on the Simulator via
+  xcodegen/xcodebuild/simctl
 
 instructions: |
   The iOS analogue of macos-app-testing's rule: a green `xcodebuild test` exit
@@ -41,21 +42,8 @@ instructions: |
     does this for you; do not reach for `-ss`/`-sseof` if you are ever doing
     this by hand.
 
-tools:
-  entry: tools.ts
-
-tool-metadata:
-  - { toolName: status, namespace: ios-simulator-testing, access: read }
-  - { toolName: list_simulators, namespace: ios-simulator-testing, access: read }
-  - { toolName: screenshot, namespace: ios-simulator-testing, access: read }
-  - { toolName: extract_failure_evidence, namespace: ios-simulator-testing, access: read }
-  - { toolName: generate_project, namespace: ios-simulator-testing, access: write }
-  - { toolName: boot_simulator, namespace: ios-simulator-testing, access: write }
-  - { toolName: build, namespace: ios-simulator-testing, access: write }
-  - { toolName: test, namespace: ios-simulator-testing, access: write }
-
 dependencies:
-  - name: xcodegen
+  xcodegen:
     reason: regenerates the .xcodeproj from project.yml before build/test
 
 # Two traits, mirroring macos-app-testing's read/readwrite split. Inspection
@@ -73,8 +61,9 @@ traits:
   ios-simulator-testing-readwrite:
     description: Generate, build, boot and test iOS apps on the Simulator
     access: readwrite
-    namespaces: [ios-simulator-testing]
+    namespaces: [ ios-simulator-testing ]
   ios-simulator-inspection:
-    description: Inspect simulators and QA evidence without building, booting, or running anything
+    description: Inspect simulators and QA evidence without building, booting, or
+      running anything
     access: read
-    namespaces: [ios-simulator-testing]
+    namespaces: [ ios-simulator-testing ]
