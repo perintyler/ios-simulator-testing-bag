@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@barry-rocks/sdk':
-        specifier: link:../../barry/sdk/lib
-        version: link:../../barry/sdk/lib
+        specifier: link:../../barry/sdk
+        version: link:../../barry/sdk
       zod:
         specifier: 3.25.76
         version: 3.25.76
